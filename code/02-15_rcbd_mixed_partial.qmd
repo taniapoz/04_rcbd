@@ -14,10 +14,14 @@ Here is where we load the packages we will use.
 # Loading packages
 library(tidyverse) # for data wrangling and plotting
 library(car) # for Anova function
+#install.packages("lme4", type = "binary")
 library(lme4)
 library(broom) # for model residuals extraction
 library(emmeans) # for model mean extraction
 library(multcomp) # for pairwise comparison letter display
+#remove.packages("Matrix")
+#install.packages("Matrix", type = "binary")
+library(Matrix)
 ```
 
 **IMPORTANT NOTE**:  
@@ -107,7 +111,10 @@ To account for more than one variance component (i.e., random effects and error)
 options(contrasts = c("contr.sum", "contr.poly"))
 
 # Model fitting
-rcbd_mix_mod 
+rcbd_mix_mod <- lmer(yield_kgha ~ nrate_kgha*krate_kgha +
+                       (1|rep),
+                     data = rcbd_dfw
+                       )
 
 # Summary
 summary(rcbd_mix_mod)
@@ -121,7 +128,7 @@ Therefore, blocks are responsible for 59932 / (59932 + 376416) = **14% of the to
 
 # f) ANOVA table  
 ```{r ANOVA}
-Anova(rcbd_mod_mix, type=3)
+Anova(rcbd_mix_mod, type=3)
 ```
 Notice how this table is now titled "Analysis of Deviance Table". That's because we are using REML instead of mean squares.  
 
@@ -154,7 +161,7 @@ One difference in mixed models is that the 3 first assumptions are also applied 
 
 ### Random effects are iid ~ N(0,var_a)  
 ```{r randeff_rep}
-randeff_rep
+randeff_rep <- ranef(rcbd_mix_mod)$rep
 
 randeff_rep
 ```
@@ -227,7 +234,7 @@ Remember that it is at this level that we establish the hierarchy of how our pai
 
 Let's extract it by comparing everything to everything else.
 ```{r interaction means all}
-rcbd_mix_means_all <- emmeans(rcbd_mix_mod, ~nrate_kgha:krate_kgha)
+rcbd_mix_means_all <- emmeans(rcbd_mix_mod, ~nrate_kgha*krate_kgha)
 
 rcbd_mix_means_all
 ```
@@ -236,6 +243,9 @@ rcbd_mix_means_all
 Now that we extracted means, let's perform pairwise comparisons among them.  
 
 ```{r interaction pwc all}
+#library(multcompView)
+#install.packages("emmeans", dependencies = TRUE)
+#library(emmeans)
 rcbd_mix_cld_all <- cld(rcbd_mix_means_all, 
                    reversed=T, 
                    adjust="none",
